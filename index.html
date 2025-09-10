@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSA Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        .array-bar, .stack-element, .queue-element {
+            background-color: #3b82f6; /* Tailwind's blue-500 */
+            width: 80px;
+            margin: 0 4px;
+            transition: all 0.3s ease-in-out;
+            border-radius: 4px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stack-element {
+            height: 40px;
+            margin: 4px 0;
+        }
+        .highlight {
+            background-color: #ef4444; /* Tailwind's red-500 */
+        }
+        .secondary-highlight {
+            background-color: #f59e0b; /* Tailwind's amber-500 */
+        }
+        .sorted {
+            background-color: #10b981; /* Tailwind's emerald-500 */
+        }
+        .linked-list-node {
+            display: flex;
+            align-items: center;
+            position: relative;
+            margin: 0 16px;
+        }
+        .node-value {
+            width: 60px;
+            height: 60px;
+            background-color: #6366f1;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        .node-pointer {
+            width: 40px;
+            height: 2px;
+            background-color: #4b5563;
+            position: relative;
+            margin: 0 8px;
+        }
+        .node-pointer::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: -4px;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 6px solid #4b5563;
+        }
+        .node-highlighted {
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center hidden" id="message-modal">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full mx-4 text-center">
+            <p class="text-lg font-medium" id="modal-text">This is a message.</p>
+            <button class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors" onclick="hideMessageModal()">OK</button>
+        </div>
+    </div>
+
+    <header class="w-full bg-white shadow-md py-4">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800">DSA Visualizer</h1>
+            <nav class="flex space-x-2 sm:space-x-4 text-sm sm:text-base">
+                <button id="arrayBtn" class="px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors">Array</button>
+                <button id="sortBtn" class="px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium bg-blue-200 text-blue-800 hover:bg-blue-300 transition-colors">Sorting</button>
+                <button id="linkedListBtn" class="px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium bg-blue-200 text-blue-800 hover:bg-blue-300 transition-colors">Linked List</button>
+                <button id="stackBtn" class="px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium bg-blue-200 text-blue-800 hover:bg-blue-300 transition-colors">Stack</button>
+                <button id="queueBtn" class="px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium bg-blue-200 text-blue-800 hover:bg-blue-300 transition-colors">Queue</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto p-4 flex flex-col items-center">
+        <div id="controls-panel" class="w-full max-w-3xl bg-white p-6 rounded-xl shadow-md flex flex-wrap justify-center gap-4 transition-all duration-300">
+            <!-- Dynamic controls will be rendered here -->
+        </div>
+
+        <div id="visualization-area" class="w-full max-w-4xl min-h-64 bg-white mt-8 p-6 rounded-xl shadow-md flex flex-wrap items-end justify-center gap-2">
+            <!-- Visualization will be rendered here -->
+        </div>
+
+        <div id="code-panel" class="w-full max-w-4xl bg-gray-800 text-gray-200 mt-8 p-6 rounded-xl shadow-md hidden overflow-auto">
+            <h2 class="text-xl font-semibold mb-4">Algorithm Code</h2>
+            <pre class="whitespace-pre-wrap font-mono text-sm leading-relaxed" id="code-display"></pre>
+        </div>
+    </main>
+
+    <footer class="w-full text-center py-4 text-gray-500 text-sm">
+        Visualizer for STEP Internship
+    </footer>
+
+    <script>
+        // DOM Elements
+        const arrayBtn = document.getElementById('arrayBtn');
+        const sortBtn = document.getElementById('sortBtn');
+        const linkedListBtn = document.getElementById('linkedListBtn');
+        const stackBtn = document.getElementById('stackBtn');
+        const queueBtn = document.getElementById('queueBtn');
+        const controlsPanel = document.getElementById('controls-panel');
+        const visualizationArea = document.getElementById('visualization-area');
+        const codePanel = document.getElementById('code-panel');
+        const codeDisplay = document.getElementById('code-display');
+        const messageModal = document.getElementById('message-modal');
+        const modalText = document.getElementById('modal-text');
+
+        // State variables
+        let currentMode = 'array';
+        let array = [];
+        let sortIndex = 0;
+        let isSorting = false;
+        let sortSpeed = 200; // in ms
+        let isPaused = false;
+        let animationFrameId = null;
+        let currentSortAlgo = 'bubble'; // 'bubble', 'selection', 'insertion', 'merge'
+        let mergeSortState = {};
+
+        // Data structure state
+        let stack = [];
+        let queue = [];
+
+        // --- Helper Functions ---
+
+        function showMessageModal(message) {
+            modalText.textContent = message;
+            messageModal.classList.remove('hidden');
+        }
+
+        function hideMessageModal() {
+            messageModal.classList.add('hidden');
+        }
+
+        function setButtonActive(buttonId) {
+            const buttons = [arrayBtn, sortBtn, linkedListBtn, stackBtn, queueBtn];
+            buttons.forEach(btn => {
+                if (btn.id === buttonId) {
+                    btn.classList.remove('bg-blue-200', 'text-blue-800');
+                    btn.classList.add('bg-blue-500', 'text-white');
+                } else {
+                    btn.classList.remove('bg-blue-500', 'text-white');
+                    btn.classList.add('bg-blue-200', 'text-blue-800');
+                }
+            });
+        }
+
+        // --- Visualization & Control Rendering ---
+
+        function renderArrayControls() {
+            controlsPanel.innerHTML = `
+                <input id="arrayInput" type="number" class="w-full sm:w-auto p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter value">
+                <button onclick="addValue()" class="px-4 py-2 rounded-lg font-medium bg-green-500 text-white hover:bg-green-600 transition-colors">Add Value</button>
+                <button onclick="removeValue()" class="px-4 py-2 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">Remove Last</button>
+                <button onclick="searchArray()" class="px-4 py-2 rounded-lg font-medium bg-yellow-500 text-white hover:bg-yellow-600 transition-colors">Search</button>
+                <button onclick="clearArray()" class="px-4 py-2 rounded-lg font-medium bg-gray-500 text-white hover:bg-gray-600 transition-colors">Clear</button>
+            `;
+            codePanel.classList.add('hidden');
+            renderArray();
+        }
+
+        function renderArray() {
+            visualizationArea.innerHTML = '';
+            if (array.length === 0) {
+                visualizationArea.innerHTML = '<p class="text-gray-400">Array is empty. Add some values!</p>';
+                return;
+            }
+            const maxValue = Math.max(...array);
+            array.forEach(value => {
+                const bar = document.createElement('div');
+                bar.className = 'array-bar flex items-center justify-center text-white text-sm transition-transform transform duration-300 ease-in-out';
+                bar.style.height = `${(value / maxValue) * 90}%`; // Normalized height
+                bar.textContent = value; // Display the value
+                bar.dataset.value = value;
+                visualizationArea.appendChild(bar);
+            });
+        }
+
+        function renderSortControls() {
+            controlsPanel.innerHTML = `
+                <div class="flex flex-col sm:flex-row gap-4 w-full justify-center items-center">
+                    <button onclick="generateRandomArray(20)" class="px-4 py-2 rounded-lg font-medium bg-purple-500 text-white hover:bg-purple-600 transition-colors">Generate Random Array</button>
+                    <select id="sort-algo-select" class="p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="bubble">Bubble Sort</option>
+                        <option value="selection">Selection Sort</option>
+                        <option value="insertion">Insertion Sort</option>
+                        <option value="merge">Merge Sort</option>
+                    </select>
+                    <button onclick="startSort()" id="sort-btn" class="px-4 py-2 rounded-lg font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors">Start Sorting</button>
+                    <button onclick="pauseResumeSort()" id="pause-btn" class="px-4 py-2 rounded-lg font-medium bg-yellow-500 text-white hover:bg-yellow-600 transition-colors hidden">Pause</button>
+                </div>
+                <div class="w-full mt-4">
+                    <label for="speedSlider" class="block text-gray-700">Animation Speed: <span id="speedValue">200</span>ms</label>
+                    <input type="range" id="speedSlider" min="10" max="500" value="200" oninput="updateSpeed(this.value)" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+            `;
+            codePanel.classList.remove('hidden');
+
+            const algoSelect = document.getElementById('sort-algo-select');
+            algoSelect.value = currentSortAlgo;
+            algoSelect.addEventListener('change', (e) => {
+                currentSortAlgo = e.target.value;
+                resetSortState();
+            });
+
+            generateRandomArray(20);
+            updateCodeDisplay();
+        }
+
+        function renderSortArray(highlightedIndices = [], sortedIndex = -1, minIndex = -1, insertionKeyIndex = -1) {
+            visualizationArea.innerHTML = '';
+            const maxValue = Math.max(...array);
+            array.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.className = 'array-bar flex items-center justify-center text-white text-sm';
+                bar.style.height = `${(value / maxValue) * 90}%`;
+                bar.textContent = value;
+                if (highlightedIndices.includes(index)) {
+                    bar.classList.add('highlight');
+                } else if (index === minIndex || index === insertionKeyIndex) {
+                    bar.classList.add('secondary-highlight');
+                }
+                if (index <= sortedIndex) {
+                   bar.classList.add('sorted');
+                }
+                visualizationArea.appendChild(bar);
+            });
+        }
+
+        function renderLinkedListControls() {
+            controlsPanel.innerHTML = `
+                <div class="flex flex-col sm:flex-row gap-4 w-full items-center">
+                    <input id="llValueInput" type="number" class="w-full sm:w-auto p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter value">
+                    <input id="llIndexInput" type="number" class="w-full sm:w-auto p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter index">
+                </div>
+                <div class="flex flex-col sm:flex-row gap-4 w-full justify-center items-center mt-4">
+                    <button onclick="linkedListAddFirst()" class="px-4 py-2 rounded-lg font-medium bg-green-500 text-white hover:bg-green-600 transition-colors">Add First</button>
+                    <button onclick="linkedListAddLast()" class="px-4 py-2 rounded-lg font-medium bg-green-500 text-white hover:bg-green-600 transition-colors">Add Last</button>
+                    <button onclick="linkedListAddAt()" class="px-4 py-2 rounded-lg font-medium bg-green-500 text-white hover:bg-green-600 transition-colors">Add At Index</button>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-4 w-full justify-center items-center mt-4">
+                    <button onclick="linkedListDeleteFirst()" class="px-4 py-2 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">Delete First</button>
+                    <button onclick="linkedListDeleteLast()" class="px-4 py-2 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">Delete Last</button>
+                    <button onclick="linkedListDeleteAt()" class="px-4 py-2 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">Delete At Index</button>
+                    <button onclick="linkedListClear()" class="px-4 py-2 rounded-lg font-medium bg-gray-500 text-white hover:bg-gray-600 transition-colors">Clear</button>
+                </div>
+            `;
+            codePanel.classList.remove('hidden');
+            renderLinkedList();
+            updateCodeDisplay();
+        }
+
+        function renderLinkedList() {
+            visualizationArea.innerHTML = '';
+            if (ll.head === null) {
+                visualizationArea.innerHTML = '<p class="text-gray-400">Linked List is empty. Add a node!</p>';
+                return;
+            }
+
+            let current = ll.head;
+            const container = document.createElement('div');
+            container.className = 'flex flex-row justify-center items-center flex-wrap gap-2';
+            visualizationArea.appendChild(container);
+
+            while (current) {
+                const nodeContainer = document.createElement('div');
+                nodeContainer.className = 'linked-list-node';
+
+                const nodeValue = document.createElement('div');
+                nodeValue.className = 'node-value';
+                nodeValue.textContent = current.data;
+                nodeContainer.appendChild(nodeValue);
+
+                container.appendChild(nodeContainer);
+
+                if (current.next) {
+                    const pointer = document.createElement('div');
+                    pointer.className = 'node-pointer';
+                    container.appendChild(pointer);
+                }
+
+                current = current.next;
+            }
+        }
+
+        function renderStackControls() {
+            controlsPanel.innerHTML = `
+                <input id="stackInput" type="number" class="w-full sm:w-auto p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter value">
+                <button onclick="stackPush()" class="px-4 py-2 rounded-lg font-medium bg-green-500 text-white hover:bg-green-600 transition-colors">Push</button>
+                <button onclick="stackPop()" class="px-4 py-2 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">Pop</button>
+            `;
+            codePanel.classList.remove('hidden');
+            renderStack();
+            updateCodeDisplay();
+        }
+
+        function renderStack() {
+            visualizationArea.innerHTML = '';
+            visualizationArea.classList.remove('flex-row', 'flex-wrap');
+            visualizationArea.classList.add('flex-col-reverse', 'justify-start', 'items-center');
+
+            if (stack.length === 0) {
+                visualizationArea.innerHTML = '<p class="text-gray-400">Stack is empty. Push some values!</p>';
+                return;
+            }
+
+            stack.forEach(value => {
+                const element = document.createElement('div');
+                element.className = 'stack-element';
+                element.textContent = value;
+                visualizationArea.appendChild(element);
+            });
+        }
+
+        function renderQueueControls() {
+            controlsPanel.innerHTML = `
+                <input id="queueInput" type="number" class="w-full sm:w-auto p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter value">
+                <button onclick="queueEnqueue()" class="px-4 py-2 rounded-lg font-medium bg-green-500 text-white hover:bg-green-600 transition-colors">Enqueue</button>
+                <button onclick="queueDequeue()" class="px-4 py-2 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600 transition-colors">Dequeue</button>
+            `;
+            codePanel.classList.remove('hidden');
+            renderQueue();
+            updateCodeDisplay();
+        }
+
+        function renderQueue() {
+            visualizationArea.innerHTML = '';
+            visualizationArea.classList.remove('flex-col-reverse', 'justify-start');
+            visualizationArea.classList.add('flex-row', 'flex-wrap', 'justify-center', 'items-center');
+
+            if (queue.length === 0) {
+                visualizationArea.innerHTML = '<p class="text-gray-400">Queue is empty. Enqueue some values!</p>';
+                return;
+            }
+
+            queue.forEach(value => {
+                const element = document.createElement('div');
+                element.className = 'queue-element w-20 h-10';
+                element.textContent = value;
+                visualizationArea.appendChild(element);
+            });
+        }
+
+
+        function updateCodeDisplay() {
+            if (currentMode === 'sort') {
+                if (currentSortAlgo === 'bubble') {
+                    codeDisplay.textContent = `
+// Bubble Sort Algorithm
+function bubbleSort(arr) {
+    const n = arr.length;
+    let swapped;
+    do {
+        swapped = false;
+        for (let i = 0; i < n - 1; i++) {
+            // Compare adjacent elements
+            if (arr[i] > arr[i + 1]) {
+                // Swap them
+                [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
+                swapped = true;
+            }
+        }
+    } while (swapped);
+}
+                    `;
+                } else if (currentSortAlgo === 'selection') {
+                    codeDisplay.textContent = `
+// Selection Sort Algorithm
+function selectionSort(arr) {
+    const n = arr.length;
+    for (let i = 0; i < n - 1; i++) {
+        let min_idx = i;
+        for (let j = i + 1; j < n; j++) {
+            if (arr[j] < arr[min_idx]) {
+                min_idx = j;
+            }
+        }
+        // Swap the found minimum element with the first element
+        if (min_idx != i) {
+            [arr[i], arr[arr[min_idx]]] = [arr[min_idx], arr[i]];
+        }
+    }
+}
+                    `;
+                } else if (currentSortAlgo === 'insertion') {
+                    codeDisplay.textContent = `
+// Insertion Sort Algorithm
+function insertionSort(arr) {
+    const n = arr.length;
+    for (let i = 1; i < n; i++) {
+        let key = arr[i];
+        let j = i - 1;
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            j = j - 1;
+        }
+        arr[j + 1] = key;
+    }
+}
+                    `;
+                } else if (currentSortAlgo === 'merge') {
+                    codeDisplay.textContent = `
+// Merge Sort Algorithm
+function mergeSort(arr) {
+    if (arr.length <= 1) {
+        return arr;
+    }
+    const mid = Math.floor(arr.length / 2);
+    const left = arr.slice(0, mid);
+    const right = arr.slice(mid);
+    return merge(mergeSort(left), mergeSort(right));
+}
+
+function merge(left, right) {
+    let resultArray = [], leftIndex = 0, rightIndex = 0;
+    while (leftIndex < left.length && rightIndex < right.length) {
+        if (left[leftIndex] < right[rightIndex]) {
+            resultArray.push(left[leftIndex]);
+            leftIndex++;
+        } else {
+            resultArray.push(right[rightIndex]);
+            rightIndex++;
+        }
+    }
+    return resultArray.concat(left.slice(leftIndex)).concat(right.slice(rightIndex));
+}
+                    `;
+                }
+            } else if (currentMode === 'linkedlist') {
+                codeDisplay.textContent = `
+// Linked List Data Structure
+class Node {
+    constructor(data) {
+        this.data = data;
+        this.next = null;
+    }
+}
+
+class LinkedList {
+    constructor() {
+        this.head = null;
+        this.size = 0;
+    }
+
+    addFirst(data) {
+        const newNode = new Node(data);
+        newNode.next = this.head;
+        this.head = newNode;
+        this.size++;
+    }
+
+    addLast(data) {
+        const newNode = new Node(data);
+        if (!this.head) {
+            this.head = newNode;
+        } else {
+            let current = this.head;
+            while (current.next) {
+                current = current.next;
+            }
+            current.next = newNode;
+        }
+        this.size++;
+    }
+
+    addAt(data, index) {
+        if (index < 0 || index > this.size) {
+            return false;
+        }
+        if (index === 0) {
+            this.addFirst(data);
+            return true;
+        }
+        const newNode = new Node(data);
+        let current = this.head;
+        let prev;
+        for (let i = 0; i < index; i++) {
+            prev = current;
+            current = current.next;
+        }
+        newNode.next = current;
+        prev.next = newNode;
+        this.size++;
+        return true;
+    }
+
+    deleteFirst() {
+        if (!this.head) {
+            return null;
+        }
+        const removedNode = this.head;
+        this.head = this.head.next;
+        this.size--;
+        return removedNode.data;
+    }
+
+    deleteLast() {
+        if (!this.head) {
+            return null;
+        }
+        if (this.size === 1) {
+            const removedNode = this.head;
+            this.head = null;
+            this.size--;
+            return removedNode.data;
+        }
+        let current = this.head;
+        let prev;
+        while (current.next) {
+            prev = current;
+            current = current.next;
+        }
+        prev.next = null;
+        this.size--;
+        return current.data;
+    }
+
+    deleteAt(index) {
+        if (index < 0 || index >= this.size) {
+            return null;
+        }
+        if (index === 0) {
+            return this.deleteFirst();
+        }
+        let current = this.head;
+        let prev;
+        for (let i = 0; i < index; i++) {
+            prev = current;
+            current = current.next;
+        }
+        prev.next = current.next;
+        this.size--;
+        return current.data;
+    }
+}
+                `;
+            } else if (currentMode === 'stack') {
+                codeDisplay.textContent = `
+// Stack Data Structure (LIFO - Last In, First Out)
+class Stack {
+    constructor() {
+        this.items = [];
+    }
+
+    // Adds an element to the top of the stack
+    push(element) {
+        this.items.push(element);
+    }
+
+    // Removes and returns the top element of the stack
+    pop() {
+        if (this.isEmpty()) {
+            return "Underflow";
+        }
+        return this.items.pop();
+    }
+
+    // Returns the top element without removing it
+    peek() {
+        return this.items[this.items.length - 1];
+    }
+
+    // Checks if the stack is empty
+    isEmpty() {
+        return this.items.length === 0;
+    }
+}
+                `;
+            } else if (currentMode === 'queue') {
+                codeDisplay.textContent = `
+// Queue Data Structure (FIFO - First In, First Out)
+class Queue {
+    constructor() {
+        this.items = [];
+    }
+
+    // Adds an element to the back of the queue
+    enqueue(element) {
+        this.items.push(element);
+    }
+
+    // Removes and returns the front element of the queue
+    dequeue() {
+        if (this.isEmpty()) {
+            return "Underflow";
+        }
+        return this.items.shift();
+    }
+
+    // Returns the front element without removing it
+    peek() {
+        if (this.isEmpty()) {
+            return "No elements in Queue";
+        }
+        return this.items[0];
+    }
+
+    // Checks if the queue is empty
+    isEmpty() {
+        return this.items.length === 0;
+    }
+}
+                `;
+            }
+        }
+
+        // --- Array Operations ---
+
+        function addValue() {
+            const input = document.getElementById('arrayInput');
+            const value = parseInt(input.value);
+            if (!isNaN(value) && value > 0 && value < 200) {
+                array.push(value);
+                input.value = '';
+                renderArray();
+            } else {
+                showMessageModal("Please enter a number between 1 and 200.");
+            }
+        }
+
+        function removeValue() {
+            if (array.length > 0) {
+                array.pop();
+                renderArray();
+            } else {
+                showMessageModal("Array is already empty.");
+            }
+        }
+
+        async function searchArray() {
+            const input = document.getElementById('arrayInput');
+            const valueToSearch = parseInt(input.value);
+            if (isNaN(valueToSearch)) {
+                showMessageModal("Please enter a number to search for.");
+                return;
+            }
+
+            const bars = document.querySelectorAll('.array-bar');
+            for (let i = 0; i < bars.length; i++) {
+                bars[i].style.backgroundColor = '#3b82f6'; // Reset color
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                if (parseInt(bars[i].dataset.value) === valueToSearch) {
+                    bars[i].style.backgroundColor = '#10b981'; // Found color
+                    showMessageModal(`Value ${valueToSearch} found at index ${i}!`);
+                    return;
+                } else {
+                    bars[i].style.backgroundColor = '#ef4444'; // Not found color
+                }
+            }
+            showMessageModal(`Value ${valueToSearch} not found in the array.`);
+        }
+
+        function clearArray() {
+            array = [];
+            renderArray();
+        }
+
+        // --- Sorting Algorithms ---
+
+        function generateRandomArray(size) {
+            array = [];
+            for (let i = 0; i < size; i++) {
+                array.push(Math.floor(Math.random() * 100) + 10);
+            }
+            resetSortState();
+        }
+
+        function resetSortState() {
+            if (isSorting) clearTimeout(animationFrameId);
+            isSorting = false;
+            sortIndex = 0;
+            const sortBtn = document.getElementById('sort-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+            sortBtn.textContent = 'Start Sorting';
+            pauseBtn.classList.add('hidden');
+            renderSortArray();
+            updateCodeDisplay();
+            i = 0;
+            j = 0;
+            min_idx = 0;
+            insertion_i = 1;
+            mergeSortState = { array: [...array], history: [], step: 0 };
+        }
+
+        async function bubbleSortStep() {
+            if (sortIndex >= array.length - 1) {
+                const isFullySorted = array.every((val, i, arr) => !i || val >= arr[i - 1]);
+                if (isFullySorted) {
+                    isSorting = false;
+                    document.getElementById('sort-btn').textContent = 'Sorted!';
+                    document.getElementById('pause-btn').classList.add('hidden');
+                    renderSortArray([], array.length - 1);
+                    return;
+                }
+                sortIndex = 0;
+            }
+
+            if (array[sortIndex] > array[sortIndex + 1]) {
+                [array[sortIndex], array[sortIndex + 1]] = [array[sortIndex + 1], array[sortIndex]];
+            }
+
+            renderSortArray([sortIndex, sortIndex + 1], array.length - 2 - Math.floor(sortIndex / (array.length - 1)));
+
+            sortIndex++;
+
+            if (isSorting) {
+                animationFrameId = setTimeout(bubbleSortStep, sortSpeed);
+            }
+        }
+
+        let i = 0;
+        let j = 0;
+        let min_idx = 0;
+
+        async function selectionSortStep() {
+            if (i >= array.length - 1) {
+                isSorting = false;
+                document.getElementById('sort-btn').textContent = 'Sorted!';
+                document.getElementById('pause-btn').classList.add('hidden');
+                renderSortArray([], array.length - 1);
+                return;
+            }
+
+            if (j === i) {
+                min_idx = i;
+            }
+
+            if (j < array.length) {
+                if (array[j] < array[min_idx]) {
+                    min_idx = j;
+                }
+                renderSortArray([i, j], i - 1, min_idx);
+                j++;
+            } else {
+                if (min_idx !== i) {
+                    [array[i], array[min_idx]] = [array[min_idx], array[i]];
+                }
+                renderSortArray([], i);
+                i++;
+                j = i + 1;
+            }
+
+            if (isSorting) {
+                animationFrameId = setTimeout(selectionSortStep, sortSpeed);
+            }
+        }
+
+        let insertion_i = 1;
+        let insertion_j;
+        let key;
+
+        async function insertionSortStep() {
+            if (insertion_i >= array.length) {
+                isSorting = false;
+                document.getElementById('sort-btn').textContent = 'Sorted!';
+                document.getElementById('pause-btn').classList.add('hidden');
+                renderSortArray([], array.length - 1);
+                return;
+            }
+
+            if (insertion_i === 1) { // First time setup
+                key = array[insertion_i];
+                insertion_j = insertion_i - 1;
+            }
+
+            if (insertion_j >= 0 && array[insertion_j] > key) {
+                array[insertion_j + 1] = array[insertion_j];
+                renderSortArray([insertion_j], insertion_i - 1, -1, insertion_j + 1);
+                insertion_j--;
+            } else {
+                array[insertion_j + 1] = key;
+                insertion_i++;
+                if (insertion_i < array.length) {
+                    key = array[insertion_i];
+                    insertion_j = insertion_i - 1;
+                }
+                renderSortArray([], insertion_i - 1, -1, insertion_i);
+            }
+
+            if (isSorting) {
+                animationFrameId = setTimeout(insertionSortStep, sortSpeed);
+            }
+        }
+
+        // Merge Sort helpers
+        function mergeSortStart(arr, start, end, history) {
+            if (start < end) {
+                const mid = Math.floor((start + end) / 2);
+                history.push({ action: 'split', start, end, mid });
+                mergeSortStart(arr, start, mid, history);
+                mergeSortStart(arr, mid + 1, end, history);
+                merge(arr, start, mid, end, history);
+            }
+        }
+
+        function merge(arr, start, mid, end, history) {
+            let temp = [];
+            let i = start;
+            let j = mid + 1;
+            while (i <= mid && j <= end) {
+                if (arr[i] <= arr[j]) {
+                    temp.push(arr[i++]);
+                } else {
+                    temp.push(arr[j++]);
+                }
+            }
+            while (i <= mid) {
+                temp.push(arr[i++]);
+            }
+            while (j <= end) {
+                temp.push(arr[j++]);
+            }
+            history.push({ action: 'merge', start, end, temp: [...temp] });
+            for (let k = 0; k < temp.length; k++) {
+                arr[start + k] = temp[k];
+            }
+        }
+
+        async function mergeSortStep() {
+            if (mergeSortState.step >= mergeSortState.history.length) {
+                isSorting = false;
+                document.getElementById('sort-btn').textContent = 'Sorted!';
+                document.getElementById('pause-btn').classList.add('hidden');
+                renderSortArray([], array.length - 1);
+                return;
+            }
+
+            const step = mergeSortState.history[mergeSortState.step];
+
+            if (step.action === 'split') {
+                renderSortArray([step.start, step.mid, step.end]);
+            } else if (step.action === 'merge') {
+                for (let k = 0; k < step.temp.length; k++) {
+                    array[step.start + k] = step.temp[k];
+                }
+                renderSortArray(Array.from({length: step.end - step.start + 1}, (_, i) => i + step.start), -1, -1);
+            }
+
+            mergeSortState.step++;
+
+            if (isSorting) {
+                animationFrameId = setTimeout(mergeSortStep, sortSpeed);
+            }
+        }
+
+        function startSort() {
+            if (isSorting) return;
+            isSorting = true;
+            isPaused = false;
+
+            const sortBtn = document.getElementById('sort-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+            sortBtn.textContent = 'Sorting...';
+            pauseBtn.textContent = 'Pause';
+            pauseBtn.classList.remove('hidden');
+
+            if (currentSortAlgo === 'bubble') {
+                sortIndex = 0;
+                bubbleSortStep();
+            } else if (currentSortAlgo === 'selection') {
+                i = 0;
+                j = 1;
+                min_idx = 0;
+                selectionSortStep();
+            } else if (currentSortAlgo === 'insertion') {
+                insertion_i = 1;
+                insertion_j = 0;
+                insertionSortStep();
+            } else if (currentSortAlgo === 'merge') {
+                mergeSortState = { array: [...array], history: [], step: 0 };
+                mergeSortStart(mergeSortState.array, 0, mergeSortState.array.length - 1, mergeSortState.history);
+                mergeSortStep();
+            }
+        }
+
+        function pauseResumeSort() {
+            isPaused = !isPaused;
+            const pauseBtn = document.getElementById('pause-btn');
+            if (isPaused) {
+                clearTimeout(animationFrameId);
+                pauseBtn.textContent = 'Resume';
+            } else {
+                pauseBtn.textContent = 'Pause';
+                if (currentSortAlgo === 'bubble') {
+                    bubbleSortStep();
+                } else if (currentSortAlgo === 'selection') {
+                    selectionSortStep();
+                } else if (currentSortAlgo === 'insertion') {
+                    insertionSortStep();
+                } else if (currentSortAlgo === 'merge') {
+                    mergeSortStep();
+                }
+            }
+        }
+
+        function updateSpeed(value) {
+            sortSpeed = parseInt(value);
+            document.getElementById('speedValue').textContent = sortSpeed;
+        }
+
+        // --- Linked List Logic ---
+        class Node {
+            constructor(data) {
+                this.data = data;
+                this.next = null;
+            }
+        }
+
+        class LinkedList {
+            constructor() {
+                this.head = null;
+                this.size = 0;
+            }
+
+            async addFirst(data) {
+                const newNode = new Node(data);
+                const oldHead = this.head;
+                this.head = newNode;
+                newNode.next = oldHead;
+                this.size++;
+            }
+
+            async addLast(data) {
+                const newNode = new Node(data);
+                if (!this.head) {
+                    this.head = newNode;
+                } else {
+                    let current = this.head;
+                    while (current.next) {
+                        current = current.next;
+                    }
+                    current.next = newNode;
+                }
+                this.size++;
+            }
+
+            async addAt(data, index) {
+                if (index < 0 || index > this.size) {
+                    return showMessageModal(`Index ${index} is out of bounds.`);
+                }
+                if (index === 0) {
+                    return await this.addFirst(data);
+                }
+                const newNode = new Node(data);
+                let current = this.head;
+                let prev = null;
+                for (let i = 0; i < index; i++) {
+                    prev = current;
+                    current = current.next;
+                }
+                newNode.next = current;
+                prev.next = newNode;
+                this.size++;
+            }
+
+            async deleteFirst() {
+                if (!this.head) {
+                    return showMessageModal("List is empty. Nothing to delete.");
+                }
+                this.head = this.head.next;
+                this.size--;
+            }
+
+            async deleteLast() {
+                if (!this.head) {
+                    return showMessageModal("List is empty. Nothing to delete.");
+                }
+                if (this.size === 1) {
+                    this.head = null;
+                    this.size--;
+                    return;
+                }
+                let current = this.head;
+                let prev = null;
+                while (current.next) {
+                    prev = current;
+                    current = current.next;
+                }
+                prev.next = null;
+                this.size--;
+            }
+
+            async deleteAt(index) {
+                if (index < 0 || index >= this.size) {
+                    return showMessageModal(`Index ${index} is out of bounds.`);
+                }
+                if (index === 0) {
+                    return await this.deleteFirst();
+                }
+                let current = this.head;
+                let prev = null;
+                for (let i = 0; i < index; i++) {
+                    prev = current;
+                    current = current.next;
+                }
+                prev.next = current.next;
+                this.size--;
+            }
+
+            clear() {
+                this.head = null;
+                this.size = 0;
+            }
+        }
+
+        const ll = new LinkedList();
+
+        async function linkedListAddFirst() {
+            const value = document.getElementById('llValueInput').value;
+            if (!value) return showMessageModal("Please enter a value.");
+            await ll.addFirst(value);
+            renderLinkedList();
+        }
+
+        async function linkedListAddLast() {
+            const value = document.getElementById('llValueInput').value;
+            if (!value) return showMessageModal("Please enter a value.");
+            await ll.addLast(value);
+            renderLinkedList();
+        }
+
+        async function linkedListAddAt() {
+            const value = document.getElementById('llValueInput').value;
+            const index = parseInt(document.getElementById('llIndexInput').value);
+            if (!value || isNaN(index)) return showMessageModal("Please enter a value and a valid index.");
+            await ll.addAt(value, index);
+            renderLinkedList();
+        }
+
+        async function linkedListDeleteFirst() {
+            await ll.deleteFirst();
+            renderLinkedList();
+        }
+
+        async function linkedListDeleteLast() {
+            await ll.deleteLast();
+            renderLinkedList();
+        }
+
+        async function linkedListDeleteAt() {
+            const index = parseInt(document.getElementById('llIndexInput').value);
+            if (isNaN(index)) return showMessageModal("Please enter a valid index.");
+            await ll.deleteAt(index);
+            renderLinkedList();
+        }
+
+        function linkedListClear() {
+            ll.clear();
+            renderLinkedList();
+        }
+
+        // --- Stack Operations ---
+        function stackPush() {
+            const value = document.getElementById('stackInput').value;
+            if (!value) return showMessageModal("Please enter a value.");
+            stack.push(value);
+            renderStack();
+        }
+
+        function stackPop() {
+            if (stack.length === 0) {
+                showMessageModal("Stack is empty. Nothing to pop.");
+                return;
+            }
+            stack.pop();
+            renderStack();
+        }
+
+        // --- Queue Operations ---
+        function queueEnqueue() {
+            const value = document.getElementById('queueInput').value;
+            if (!value) return showMessageModal("Please enter a value.");
+            queue.push(value);
+            renderQueue();
+        }
+
+        function queueDequeue() {
+            if (queue.length === 0) {
+                showMessageModal("Queue is empty. Nothing to dequeue.");
+                return;
+            }
+            queue.shift();
+            renderQueue();
+        }
+
+        // --- Event Listeners ---
+        arrayBtn.addEventListener('click', () => {
+            setButtonActive('arrayBtn');
+            currentMode = 'array';
+            if (isSorting) clearTimeout(animationFrameId);
+            renderArrayControls();
+        });
+
+        sortBtn.addEventListener('click', () => {
+            setButtonActive('sortBtn');
+            currentMode = 'sort';
+            if (isSorting) clearTimeout(animationFrameId);
+            renderSortControls();
+        });
+
+        linkedListBtn.addEventListener('click', () => {
+            setButtonActive('linkedListBtn');
+            currentMode = 'linkedlist';
+            if (isSorting) clearTimeout(animationFrameId);
+            renderLinkedListControls();
+        });
+
+        stackBtn.addEventListener('click', () => {
+            setButtonActive('stackBtn');
+            currentMode = 'stack';
+            if (isSorting) clearTimeout(animationFrameId);
+            renderStackControls();
+        });
+
+        queueBtn.addEventListener('click', () => {
+            setButtonActive('queueBtn');
+            currentMode = 'queue';
+            if (isSorting) clearTimeout(animationFrameId);
+            renderQueueControls();
+        });
+
+
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', () => {
+            arrayBtn.click();
+        });
+    </script>
+</body>
+</html>
