@@ -60,7 +60,7 @@ Interactive visualizations of fundamental Data Structures & Algorithms, built to
 ---
 ## 📸 Screenshots
 ### Homepage
-![Homepage Screenshot](assets/home.png)
+![Homepage Screenshot](assets/home_page.png)
 
 ### Array Visualization
 ![Array Screenshot](assets/array_visualizer.png)
