@@ -58,8 +58,27 @@ Interactive visualizations of fundamental Data Structures & Algorithms, built to
 4. Experiment! Try different inputs (if supported) to see behavior.
 
 ---
-##📸 Screenshots
+## 📸 Screenshots
+### Homepage
+![Homepage Screenshot](assets/home.png)
 
+### Array Visualization
+![Array Screenshot](assets/array_visualizer.png)
+
+### Tree Visualization
+![Tree Screenshot](assets/tree_visualizer.png)
+### Linked List Visualization
+![Linked List Screenshot](assets/linked_list_visualizer.png)
+
+### Stack Visualization
+![Stack Screenshot](assets/stack_visualizer.png)
+
+### Queue Visualization
+![Queue Screenshot](assets/queue_visualizer.png)
+### Sorting Visualization
+![Sorting Screenshot](assets/sorting_visualizer.png)
+
+---
 ## 💡 Possible Extensions / Future Work
 
 - Add more algorithms (e.g. graph algorithms, dynamic programming visualizations)  
