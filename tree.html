@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #507D2A 0%, #FFFACD 100%);
+            color: #374151;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        .card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 100%;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+        }
+        .visualization-container {
+            position: relative;
+            min-height: 500px;
+            width: 100%;
+            overflow: hidden;
+            border: 2px solid #e5e7eb;
+            border-radius: 1rem;
+            background-color: #fafafa;
+        }
+        .node {
+            position: absolute;
+            background-color: #3b82f6;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.5s ease-in-out;
+            z-index: 10;
+        }
+        .node.visited {
+            background-color: #10b981; /* Tailwind's emerald-500 */
+        }
+        .link {
+            position: absolute;
+            height: 2px;
+            background-color: #6b7280;
+            z-index: 5;
+            transform-origin: left center;
+        }
+        .link::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -4px;
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 10px solid #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-bold text-center mb-4">Tree Visualizer</h1>
+
+        <div class="card">
+            <h2 class="text-xl font-semibold mb-4 text-center">Traversal Operations</h2>
+            <div class="controls">
+                <button id="preorderBtn" class="bg-blue-500 text-white p-2 rounded-md font-bold hover:bg-blue-600 transition w-full sm:w-1/3">Preorder</button>
+                <button id="inorderBtn" class="bg-blue-500 text-white p-2 rounded-md font-bold hover:bg-blue-600 transition w-full sm:w-1/3">Inorder</button>
+                <button id="postorderBtn" class="bg-blue-500 text-white p-2 rounded-md font-bold hover:bg-blue-600 transition w-full sm:w-1/3">Postorder</button>
+            </div>
+            <p id="traversalOutput" class="mt-4 p-2 bg-gray-100 rounded-md text-center font-mono">Traversal Order: </p>
+        </div>
+
+        <div class="card">
+            <h2 class="text-xl font-semibold mb-4 text-center">Visualization</h2>
+            <div id="visualizationContainer" class="visualization-container">
+                <svg id="treeSVG" class="absolute inset-0 w-full h-full pointer-events-none"></svg>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Data Structure Classes ---
+        class Node {
+            constructor(value) {
+                this.value = value;
+                this.left = null;
+                this.right = null;
+                this.x = 0;
+                this.y = 0;
+            }
+        }
+
+        class BinarySearchTree {
+            constructor() {
+                this.root = null;
+            }
+
+            insert(value) {
+                const newNode = new Node(value);
+                if (this.root === null) {
+                    this.root = newNode;
+                    return this;
+                }
+                let current = this.root;
+                while (true) {
+                    if (value === current.value) return undefined;
+                    if (value < current.value) {
+                        if (current.left === null) {
+                            current.left = newNode;
+                            return this;
+                        }
+                        current = current.left;
+                    } else {
+                        if (current.right === null) {
+                            current.right = newNode;
+                            return this;
+                        }
+                        current = current.right;
+                    }
+                }
+            }
+        }
+
+        // --- DOM Elements & Global Variables ---
+        const preorderBtn = document.getElementById('preorderBtn');
+        const inorderBtn = document.getElementById('inorderBtn');
+        const postorderBtn = document.getElementById('postorderBtn');
+        const traversalOutput = document.getElementById('traversalOutput');
+        const visualizationContainer = document.getElementById('visualizationContainer');
+        const treeSVG = document.getElementById('treeSVG');
+
+        let bst = new BinarySearchTree();
+        let animationDelay = 500;
+
+        // --- Pre-built Tree ---
+        const exampleTreeValues = [15, 10, 20, 5, 12, 18, 25];
+
+        // --- Visualization Functions ---
+        function renderTree() {
+            if (!bst.root) {
+                visualizationContainer.innerHTML = '';
+                traversalOutput.textContent = 'Traversal Order:';
+                return;
+            }
+
+            visualizationContainer.innerHTML = '';
+            visualizationContainer.appendChild(treeSVG);
+            treeSVG.innerHTML = '';
+
+            const nodePositions = {};
+            const treeHeight = calculateTreeHeight(bst.root);
+            const nodeWidth = 60;
+            const nodeHeight = 60;
+            const horizontalSpacing = nodeWidth * 1.5;
+            const verticalSpacing = nodeHeight * 2;
+            let lastX = 0;
+
+            // In-order traversal to set horizontal positions
+            function setXPositions(node) {
+                if (!node) return;
+                setXPositions(node.left);
+                node.x = lastX;
+                lastX += horizontalSpacing;
+                setXPositions(node.right);
+            }
+            setXPositions(bst.root);
+
+            // Level-order traversal to create elements and set vertical positions
+            const queue = [bst.root];
+            const maxLevel = treeHeight;
+            let level = 0;
+
+            while(queue.length > 0) {
+                const levelSize = queue.length;
+                for (let i = 0; i < levelSize; i++) {
+                    const node = queue.shift();
+                    node.y = level * verticalSpacing;
+
+                    // Create the node element
+                    const nodeDiv = document.createElement('div');
+                    nodeDiv.className = 'node';
+                    nodeDiv.id = `node-${node.value}`;
+                    nodeDiv.textContent = node.value;
+                    nodeDiv.style.left = `${node.x}px`;
+                    nodeDiv.style.top = `${node.y}px`;
+                    visualizationContainer.appendChild(nodeDiv);
+
+                    // Add links (lines) to children
+                    if (node.left) {
+                        queue.push(node.left);
+                    }
+                    if (node.right) {
+                        queue.push(node.right);
+                    }
+                }
+                level++;
+            }
+
+            // Draw lines after all nodes are positioned
+            setTimeout(() => {
+                drawLinks(bst.root);
+            }, 0);
+        }
+
+        function calculateTreeHeight(node) {
+            if (!node) return 0;
+            return 1 + Math.max(calculateTreeHeight(node.left), calculateTreeHeight(node.right));
+        }
+
+        function drawLinks(node) {
+            if (!node) return;
+
+            const parentEl = document.getElementById(`node-${node.value}`);
+            if (!parentEl) return;
+            const parentRect = parentEl.getBoundingClientRect();
+            const containerRect = visualizationContainer.getBoundingClientRect();
+
+            // Draw left link
+            if (node.left) {
+                const childEl = document.getElementById(`node-${node.left.value}`);
+                if (childEl) {
+                    const childRect = childEl.getBoundingClientRect();
+                    const startX = parentRect.left + parentRect.width / 2 - containerRect.left;
+                    const startY = parentRect.bottom - containerRect.top;
+                    const endX = childRect.left + childRect.width / 2 - containerRect.left;
+                    const endY = childRect.top - containerRect.top;
+
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute('d', `M${startX},${startY} L${endX},${endY}`);
+                    path.setAttribute('stroke', '#6b7280');
+                    path.setAttribute('stroke-width', '2');
+                    path.setAttribute('fill', 'none');
+                    treeSVG.appendChild(path);
+                }
+            }
+
+            // Draw right link
+            if (node.right) {
+                const childEl = document.getElementById(`node-${node.right.value}`);
+                if (childEl) {
+                    const childRect = childEl.getBoundingClientRect();
+                    const startX = parentRect.left + parentRect.width / 2 - containerRect.left;
+                    const startY = parentRect.bottom - containerRect.top;
+                    const endX = childRect.left + childRect.width / 2 - containerRect.left;
+                    const endY = childRect.top - containerRect.top;
+
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute('d', `M${startX},${startY} L${endX},${endY}`);
+                    path.setAttribute('stroke', '#6b7280');
+                    path.setAttribute('stroke-width', '2');
+                    path.setAttribute('fill', 'none');
+                    treeSVG.appendChild(path);
+                }
+            }
+
+            drawLinks(node.left);
+            drawLinks(node.right);
+        }
+
+
+        // --- Traversal Functions with Animation ---
+        async function animateTraversal(traversalOrder) {
+            traversalOutput.textContent = 'Traversal Order:';
+            resetNodeColors();
+            let delay = 0;
+
+            for (const value of traversalOrder) {
+                setTimeout(() => {
+                    const nodeEl = document.getElementById(`node-${value}`);
+                    if (nodeEl) {
+                        nodeEl.classList.add('visited');
+                    }
+                    traversalOutput.textContent += ` ${value}`;
+                }, delay);
+                delay += animationDelay;
+            }
+        }
+
+        function resetNodeColors() {
+            const nodes = document.querySelectorAll('.node');
+            nodes.forEach(node => {
+                node.classList.remove('visited');
+            });
+        }
+
+        function getTraversalOrder(type) {
+            const result = [];
+
+            function traverse(node) {
+                if (!node) return;
+
+                if (type === 'preorder') result.push(node.value);
+                traverse(node.left);
+                if (type === 'inorder') result.push(node.value);
+                traverse(node.right);
+                if (type === 'postorder') result.push(node.value);
+            }
+
+            traverse(bst.root);
+            return result;
+        }
+
+        // --- Event Listeners ---
+        preorderBtn.addEventListener('click', () => {
+            const order = getTraversalOrder('preorder');
+            animateTraversal(order);
+        });
+
+        inorderBtn.addEventListener('click', () => {
+            const order = getTraversalOrder('inorder');
+            animateTraversal(order);
+        });
+
+        postorderBtn.addEventListener('click', () => {
+            const order = getTraversalOrder('postorder');
+            animateTraversal(order);
+        });
+
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', () => {
+            bst = new BinarySearchTree();
+            exampleTreeValues.forEach(val => bst.insert(val));
+            renderTree();
+        });
+    </script>
+</body>
+</html>

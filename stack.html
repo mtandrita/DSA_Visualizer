@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stack Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #FFD700 0%, #FFC125 100%);
+            color: #374151;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 2rem;
+
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            align-items: center;
+        }
+        .card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            text-align: center;
+        }
+        .stack-container {
+            height: 400px;
+            width: 150px;
+            background-color: #e5e7eb;
+            border-radius: 1rem;
+            border: 2px solid #9ca3af;
+            display: flex;
+            flex-direction: column-reverse;
+            padding: 0.5rem;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .stack-element {
+            width: 100%;
+            padding: 1rem;
+            background-color: #3b82f6;
+            color: white;
+            font-weight: bold;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            margin-bottom: 0.5rem;
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        .stack-element.pushed {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-bold text-center mb-4">Stack Visualizer</h1>
+
+        <div class="card">
+            <h2 class="text-xl font-semibold mb-4">Operations</h2>
+            <div class="flex flex-col md:flex-row justify-center items-center gap-4">
+                <input type="number" id="pushValueInput" placeholder="Value to push" class="p-2 border border-gray-300 rounded-md w-full md:w-auto">
+                <button id="pushBtn" class="bg-green-500 text-white p-2 rounded-md font-bold hover:bg-green-600 transition w-full md:w-auto">Push</button>
+                <button id="popBtn" class="bg-red-500 text-white p-2 rounded-md font-bold hover:bg-red-600 transition w-full md:w-auto">Pop</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="text-xl font-semibold mb-4">Visualization</h2>
+            <div class="flex justify-center">
+                <div id="stackContainer" class="stack-container">
+                    <!-- Stack elements will be rendered here -->
+                </div>
+            </div>
+            <p id="message" class="mt-4 text-gray-500"></p>
+        </div>
+    </div>
+
+    <script>
+        const pushValueInput = document.getElementById('pushValueInput');
+        const pushBtn = document.getElementById('pushBtn');
+        const popBtn = document.getElementById('popBtn');
+        const stackContainer = document.getElementById('stackContainer');
+        const messageDisplay = document.getElementById('message');
+
+        let stack = [];
+        let nextValue = 1;
+
+        function renderStack() {
+            // Clear the existing stack elements
+            stackContainer.innerHTML = '';
+
+            if (stack.length === 0) {
+                messageDisplay.textContent = 'The stack is empty.';
+                popBtn.disabled = true;
+            } else {
+                messageDisplay.textContent = 'Top of the stack: ' + stack[stack.length - 1];
+                popBtn.disabled = false;
+            }
+
+            stack.forEach((value, index) => {
+                const element = document.createElement('div');
+                element.className = 'stack-element';
+                element.textContent = value;
+
+                // Add a small delay for a push animation
+                setTimeout(() => {
+                    element.classList.add('pushed');
+                }, 50 * (stack.length - 1 - index));
+
+                stackContainer.appendChild(element);
+            });
+        }
+
+        function pushElement() {
+            const value = pushValueInput.value.trim();
+            let pushVal;
+
+            if (value === '') {
+                pushVal = nextValue++;
+            } else {
+                pushVal = parseInt(value);
+            }
+
+            if (!isNaN(pushVal)) {
+                stack.push(pushVal);
+                pushValueInput.value = '';
+                renderStack();
+            } else {
+                messageDisplay.textContent = 'Please enter a valid number.';
+            }
+        }
+
+        function popElement() {
+            if (stack.length > 0) {
+                const poppedValue = stack.pop();
+
+                // Find the element to animate
+                const elements = stackContainer.querySelectorAll('.stack-element');
+                const topElement = elements[elements.length - 1];
+
+                if (topElement) {
+                    topElement.style.transform = 'translateY(-100%)';
+                    topElement.style.opacity = '0';
+                    topElement.style.marginBottom = '200px';
+                    topElement.style.transition = 'all 0.5s ease-in-out';
+
+                    setTimeout(() => {
+                        renderStack();
+                        messageDisplay.textContent = `Popped value: ${poppedValue}`;
+                    }, 500);
+                } else {
+                    renderStack();
+                }
+
+            }
+        }
+
+        pushBtn.addEventListener('click', pushElement);
+        popBtn.addEventListener('click', popElement);
+
+        pushValueInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                pushElement();
+            }
+        });
+
+        // Initial render
+        renderStack();
+    </script>
+</body>
+</html>

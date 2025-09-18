@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorting Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #374151;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+            gap: 2rem;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            align-items: center;
+        }
+        .card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            text-align: center;
+        }
+        .visualization-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 0.5rem;
+            min-height: 250px;
+            padding: 1rem;
+            background-color: #e5e7eb;
+            border-radius: 1rem;
+            border: 2px solid #9ca3af;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .bar-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            position: relative;
+        }
+        .bar {
+            width: 50px;
+            background-color: #3b82f6; /* Blue */
+            transition: all 0.3s ease-in-out;
+            border-radius: 0.25rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 10;
+        }
+        .bar-label {
+            position: absolute;
+            top: -1.5rem;
+            color: #4b5563;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-bold text-center mb-4">Sorting Visualizer</h1>
+
+        <div class="card">
+            <h2 class="text-2xl font-semibold mb-4">Controls</h2>
+            <div class="flex flex-wrap justify-center gap-4 mb-8">
+                <button id="bubbleSortBtn" class="bg-blue-500 text-white p-2 rounded-md font-bold hover:bg-blue-600 transition w-full sm:w-auto">Bubble Sort</button>
+                <button id="selectionSortBtn" class="bg-blue-500 text-white p-2 rounded-md font-bold hover:bg-blue-600 transition w-full sm:w-auto">Selection Sort</button>
+                <button id="insertionSortBtn" class="bg-blue-500 text-white p-2 rounded-md font-bold hover:bg-blue-600 transition w-full sm:w-auto">Insertion Sort</button>
+                <button id="mergeSortBtn" class="bg-blue-500 text-white p-2 rounded-md font-bold hover:bg-blue-600 transition w-full sm:w-auto">Merge Sort</button>
+                <button id="resetBtn" class="bg-gray-500 text-white p-2 rounded-md font-bold hover:bg-gray-600 transition w-full sm:w-auto">Reset Array</button>
+            </div>
+            <p id="status" class="mt-4 text-center text-gray-700 font-semibold">Ready to sort.</p>
+        </div>
+
+        <div class="card">
+            <h2 class="text-2xl font-semibold mb-4">Visualization</h2>
+            <div id="visualizationContainer" class="visualization-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const visualizationContainer = document.getElementById('visualizationContainer');
+        const statusDisplay = document.getElementById('status');
+        const resetBtn = document.getElementById('resetBtn');
+        const bubbleSortBtn = document.getElementById('bubbleSortBtn');
+        const selectionSortBtn = document.getElementById('selectionSortBtn');
+        const insertionSortBtn = document.getElementById('insertionSortBtn');
+        const mergeSortBtn = document.getElementById('mergeSortBtn');
+
+        let array = [];
+        const ARRAY_SIZE = 5;
+        const ANIMATION_SPEED = 500; // milliseconds
+
+        function generateRandomArray() {
+            array = [];
+            for (let i = 0; i < ARRAY_SIZE; i++) {
+                array.push(Math.floor(Math.random() * 90) + 10);
+            }
+        }
+
+        function renderArray(highlightIndices = [], sortedIndices = []) {
+            visualizationContainer.innerHTML = '';
+            array.forEach((value, index) => {
+                const barContainer = document.createElement('div');
+                barContainer.className = 'bar-container';
+
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = `${value * 2}px`;
+
+                if (highlightIndices.includes(index)) {
+                    bar.style.backgroundColor = '#f59e0b'; // Amber
+                } else if (sortedIndices.includes(index)) {
+                    bar.style.backgroundColor = '#10b981'; // Green
+                } else {
+                    bar.style.backgroundColor = '#3b82f6'; // Blue
+                }
+
+                const label = document.createElement('span');
+                label.className = 'bar-label';
+                label.textContent = value;
+
+                bar.appendChild(label);
+                barContainer.appendChild(bar);
+                visualizationContainer.appendChild(barContainer);
+            });
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function bubbleSort() {
+            let n = array.length;
+            let sorted = false;
+            while (!sorted) {
+                sorted = true;
+                for (let i = 0; i < n - 1; i++) {
+                    await sleep(ANIMATION_SPEED);
+                    renderArray([i, i + 1]);
+                    if (array[i] > array[i + 1]) {
+                        [array[i], array[i + 1]] = [array[i + 1], array[i]];
+                        sorted = false;
+                    }
+                    renderArray([i, i + 1]);
+                }
+                n--;
+                renderArray([], array.map((_, i) => i).slice(n));
+            }
+            renderArray([], array.map((_, i) => i));
+            statusDisplay.textContent = 'Bubble Sort completed!';
+        }
+
+        async function selectionSort() {
+            for (let i = 0; i < array.length - 1; i++) {
+                let minIdx = i;
+                renderArray([i, minIdx]);
+                for (let j = i + 1; j < array.length; j++) {
+                    await sleep(ANIMATION_SPEED);
+                    renderArray([i, j]);
+                    if (array[j] < array[minIdx]) {
+                        minIdx = j;
+                        renderArray([i, minIdx]);
+                    }
+                }
+                if (minIdx !== i) {
+                    [array[i], array[minIdx]] = [array[minIdx], array[i]];
+                }
+                renderArray([], array.map((_, idx) => idx).slice(0, i + 1));
+            }
+            renderArray([], array.map((_, i) => i));
+            statusDisplay.textContent = 'Selection Sort completed!';
+        }
+
+        async function insertionSort() {
+            for (let i = 1; i < array.length; i++) {
+                let current = array[i];
+                let j = i - 1;
+                while (j >= 0 && array[j] > current) {
+                    await sleep(ANIMATION_SPEED);
+                    array[j + 1] = array[j];
+                    renderArray([j, j + 1], array.map((_, idx) => idx).slice(0, i));
+                    j--;
+                }
+                array[j + 1] = current;
+            }
+            renderArray([], array.map((_, i) => i));
+            statusDisplay.textContent = 'Insertion Sort completed!';
+        }
+
+        async function mergeSort(arr = array, start = 0, end = array.length - 1) {
+            if (start < end) {
+                const mid = Math.floor((start + end) / 2);
+                await mergeSort(arr, start, mid);
+                await mergeSort(arr, mid + 1, end);
+                await merge(arr, start, mid, end);
+            }
+            statusDisplay.textContent = 'Merge Sort completed!';
+        }
+
+        async function merge(arr, start, mid, end) {
+            const left = arr.slice(start, mid + 1);
+            const right = arr.slice(mid + 1, end + 1);
+
+            let i = 0, j = 0, k = start;
+
+            while (i < left.length && j < right.length) {
+                await sleep(ANIMATION_SPEED);
+                if (left[i] <= right[j]) {
+                    arr[k] = left[i];
+                    i++;
+                } else {
+                    arr[k] = right[j];
+                    j++;
+                }
+                k++;
+                renderArray(
+                    [start, end],
+                    array.map((_, idx) => idx).slice(0, start)
+                );
+            }
+            while (i < left.length) {
+                await sleep(ANIMATION_SPEED);
+                arr[k] = left[i];
+                i++;
+                k++;
+                renderArray(
+                    [start, end],
+                    array.map((_, idx) => idx).slice(0, start)
+                );
+            }
+            while (j < right.length) {
+                await sleep(ANIMATION_SPEED);
+                arr[k] = right[j];
+                j++;
+                k++;
+                renderArray(
+                    [start, end],
+                    array.map((_, idx) => idx).slice(0, start)
+                );
+            }
+            renderArray([], array.map((_, i) => i));
+        }
+
+        function disableButtons() {
+            bubbleSortBtn.disabled = true;
+            selectionSortBtn.disabled = true;
+            insertionSortBtn.disabled = true;
+            mergeSortBtn.disabled = true;
+            resetBtn.disabled = true;
+        }
+
+        function enableButtons() {
+            bubbleSortBtn.disabled = false;
+            selectionSortBtn.disabled = false;
+            insertionSortBtn.disabled = false;
+            mergeSortBtn.disabled = false;
+            resetBtn.disabled = false;
+        }
+
+        // Event Listeners
+        resetBtn.addEventListener('click', () => {
+            generateRandomArray();
+            renderArray();
+            statusDisplay.textContent = 'Ready to sort.';
+            enableButtons();
+        });
+
+        bubbleSortBtn.addEventListener('click', async () => {
+            disableButtons();
+            await bubbleSort();
+            enableButtons();
+        });
+
+        selectionSortBtn.addEventListener('click', async () => {
+            disableButtons();
+            await selectionSort();
+            enableButtons();
+        });
+
+        insertionSortBtn.addEventListener('click', async () => {
+            disableButtons();
+            await insertionSort();
+            enableButtons();
+        });
+
+        mergeSortBtn.addEventListener('click', async () => {
+            disableButtons();
+            await mergeSort();
+            enableButtons();
+        });
+
+        // Initial render
+        document.addEventListener('DOMContentLoaded', () => {
+            generateRandomArray();
+            renderArray();
+        });
+    </script>
+</body>
+</html>

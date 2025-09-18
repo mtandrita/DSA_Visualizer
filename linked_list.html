@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linked List Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #FF6B6B 0%, #8E2DE2 50%, #4A00E0 100%);
+            color: #374151;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            gap: 2rem;
+
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        .card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .visualization-container {
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            gap: 0;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            position: relative;
+        }
+        .node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #3b82f6;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+            min-width: 80px;
+            height: 80px;
+            position: relative;
+            z-index: 10;
+        }
+        .node-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        .node-label {
+            position: absolute;
+            top: -1.5rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #374151;
+        }
+        .arrow {
+            width: 60px;
+            height: 2px;
+            background-color: #374151;
+            position: relative;
+        }
+        .arrow::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -4px;
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 10px solid #374151;
+        }
+        .doubly-arrow {
+            width: 60px;
+            height: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+        .doubly-arrow::before, .doubly-arrow::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background-color: #374151;
+        }
+        .doubly-arrow::before {
+            top: 2px;
+        }
+        .doubly-arrow::after {
+            bottom: 2px;
+        }
+        .doubly-arrow .arrow-head-right {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 10px solid #374151;
+        }
+        .doubly-arrow .arrow-head-left {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-right: 10px solid #374151;
+        }
+
+        .circular-arrow-svg {
+            position: absolute;
+            pointer-events: none;
+            overflow: visible;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 class="text-4xl font-bold text-center mb-4">Linked List Visualizer</h1>
+
+        <div class="card mb-4">
+            <h2 class="text-xl font-semibold mb-4">Linked List Types</h2>
+            <div class="flex justify-center space-x-4">
+                <button id="singlyBtn" class="bg-blue-500 text-white p-4 rounded-full font-bold">Singly</button>
+                <button id="doublyBtn" class="bg-gray-400 text-white p-4 rounded-full font-bold">Doubly</button>
+                <button id="circularBtn" class="bg-gray-400 text-white p-4 rounded-full font-bold">Circular</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="text-xl font-semibold mb-4">Operations</h2>
+            <div class="controls">
+                <div class="input-group">
+                    <input type="number" id="addValueInput" placeholder="Value to add" class="w-full p-2 border border-gray-300 rounded-md">
+                    <button id="addFirstBtn" class="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition">Add First</button>
+                    <button id="addLastBtn" class="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition">Add Last</button>
+                    <input type="number" id="addIndexInput" placeholder="Index" class="p-2 border border-gray-300 rounded-md w-1/3">
+                    <button id="addIndexBtn" class="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition w-1/3">Add at Index</button>
+                </div>
+                <div class="input-group">
+                    <button id="removeFirstBtn" class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition w-full">Remove First</button>
+                    <button id="removeLastBtn" class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition w-full">Remove Last</button>
+                    <input type="number" id="removeIndexInput" placeholder="Index" class="p-2 border border-gray-300 rounded-md w-1/3">
+                    <button id="removeIndexBtn" class="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition w-1/3">Remove at Index</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="text-xl font-semibold mb-4">Visualization</h2>
+            <div id="visualizationContainer" class="visualization-container">
+                <!-- Linked List visualization will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const singlyBtn = document.getElementById('singlyBtn');
+        const doublyBtn = document.getElementById('doublyBtn');
+        const circularBtn = document.getElementById('circularBtn');
+        const visualizationContainer = document.getElementById('visualizationContainer');
+
+        const addValueInput = document.getElementById('addValueInput');
+        const addFirstBtn = document.getElementById('addFirstBtn');
+        const addLastBtn = document.getElementById('addLastBtn');
+        const addIndexInput = document.getElementById('addIndexInput');
+        const addIndexBtn = document.getElementById('addIndexBtn');
+
+        const removeFirstBtn = document.getElementById('removeFirstBtn');
+        const removeLastBtn = document.getElementById('removeLastBtn');
+        const removeIndexInput = document.getElementById('removeIndexInput');
+        const removeIndexBtn = document.getElementById('removeIndexBtn');
+
+        let currentListType = 'singly';
+
+        class Node {
+            constructor(value) {
+                this.value = value;
+                this.next = null;
+            }
+        }
+
+        class DoublyNode extends Node {
+            constructor(value) {
+                super(value);
+                this.prev = null;
+            }
+        }
+
+        class SinglyLinkedList {
+            constructor() {
+                this.head = null;
+                this.tail = null;
+                this.length = 0;
+            }
+
+            addFirst(value) {
+                const newNode = new Node(value);
+                if (!this.head) {
+                    this.head = newNode;
+                    this.tail = newNode;
+                } else {
+                    newNode.next = this.head;
+                    this.head = newNode;
+                }
+                this.length++;
+            }
+
+            addLast(value) {
+                const newNode = new Node(value);
+                if (!this.head) {
+                    this.head = newNode;
+                    this.tail = newNode;
+                } else {
+                    this.tail.next = newNode;
+                    this.tail = newNode;
+                }
+                this.length++;
+            }
+
+            addAtIndex(index, value) {
+                if (index < 0 || index > this.length) return false;
+                if (index === 0) return this.addFirst(value);
+                if (index === this.length) return this.addLast(value);
+
+                const newNode = new Node(value);
+                let current = this.head;
+                for (let i = 0; i < index - 1; i++) {
+                    current = current.next;
+                }
+                newNode.next = current.next;
+                current.next = newNode;
+                this.length++;
+                return true;
+            }
+
+            removeFirst() {
+                if (!this.head) return undefined;
+                let currentHead = this.head;
+                this.head = currentHead.next;
+                this.length--;
+                if (this.length === 0) {
+                    this.tail = null;
+                }
+                return currentHead;
+            }
+
+            removeLast() {
+                if (!this.head) return undefined;
+                let current = this.head;
+                let newTail = current;
+                while (current.next) {
+                    newTail = current;
+                    current = current.next;
+                }
+                this.tail = newTail;
+                this.tail.next = null;
+                this.length--;
+                if (this.length === 0) {
+                    this.head = null;
+                    this.tail = null;
+                }
+                return current;
+            }
+
+            removeAtIndex(index) {
+                if (index < 0 || index >= this.length) return undefined;
+                if (index === 0) return this.removeFirst();
+                if (index === this.length - 1) return this.removeLast();
+
+                let previous = this.head;
+                for (let i = 0; i < index - 1; i++) {
+                    previous = previous.next;
+                }
+                let removed = previous.next;
+                previous.next = removed.next;
+                this.length--;
+                return removed;
+            }
+        }
+
+        class DoublyLinkedList {
+            constructor() {
+                this.head = null;
+                this.tail = null;
+                this.length = 0;
+            }
+
+            addFirst(value) {
+                const newNode = new DoublyNode(value);
+                if (!this.head) {
+                    this.head = newNode;
+                    this.tail = newNode;
+                } else {
+                    newNode.next = this.head;
+                    this.head.prev = newNode;
+                    this.head = newNode;
+                }
+                this.length++;
+            }
+
+            addLast(value) {
+                const newNode = new DoublyNode(value);
+                if (!this.head) {
+                    this.head = newNode;
+                    this.tail = newNode;
+                } else {
+                    this.tail.next = newNode;
+                    newNode.prev = this.tail;
+                    this.tail = newNode;
+                }
+                this.length++;
+            }
+
+            addAtIndex(index, value) {
+                if (index < 0 || index > this.length) return false;
+                if (index === 0) return this.addFirst(value);
+                if (index === this.length) return this.addLast(value);
+
+                const newNode = new DoublyNode(value);
+                let current = this.head;
+                for (let i = 0; i < index; i++) {
+                    current = current.next;
+                }
+                newNode.next = current;
+                newNode.prev = current.prev;
+                current.prev.next = newNode;
+                current.prev = newNode;
+                this.length++;
+                return true;
+            }
+
+            removeFirst() {
+                if (!this.head) return undefined;
+                let removed = this.head;
+                if (this.length === 1) {
+                    this.head = null;
+                    this.tail = null;
+                } else {
+                    this.head = removed.next;
+                    this.head.prev = null;
+                }
+                this.length--;
+                return removed;
+            }
+
+            removeLast() {
+                if (!this.head) return undefined;
+                let removed = this.tail;
+                if (this.length === 1) {
+                    this.head = null;
+                    this.tail = null;
+                } else {
+                    this.tail = removed.prev;
+                    this.tail.next = null;
+                }
+                this.length--;
+                return removed;
+            }
+
+            removeAtIndex(index) {
+                if (index < 0 || index >= this.length) return undefined;
+                if (index === 0) return this.removeFirst();
+                if (index === this.length - 1) return this.removeLast();
+
+                let current = this.head;
+                for (let i = 0; i < index; i++) {
+                    current = current.next;
+                }
+                current.prev.next = current.next;
+                current.next.prev = current.prev;
+                this.length--;
+                return current;
+            }
+        }
+
+        class CircularLinkedList {
+            constructor() {
+                this.head = null;
+                this.tail = null;
+                this.length = 0;
+            }
+            addFirst(value) {
+                const newNode = new Node(value);
+                if (!this.head) {
+                    this.head = newNode;
+                    this.tail = newNode;
+                    newNode.next = this.head;
+                } else {
+                    newNode.next = this.head;
+                    this.head = newNode;
+                    this.tail.next = this.head;
+                }
+                this.length++;
+            }
+
+            addLast(value) {
+                const newNode = new Node(value);
+                if (!this.head) {
+                    this.head = newNode;
+                    this.tail = newNode;
+                    newNode.next = this.head;
+                } else {
+                    this.tail.next = newNode;
+                    this.tail = newNode;
+                    this.tail.next = this.head;
+                }
+                this.length++;
+            }
+
+            addAtIndex(index, value) {
+                if (index < 0 || index > this.length) return false;
+                if (index === 0) return this.addFirst(value);
+                if (index === this.length) return this.addLast(value);
+
+                const newNode = new Node(value);
+                let current = this.head;
+                for (let i = 0; i < index - 1; i++) {
+                    current = current.next;
+                }
+                newNode.next = current.next;
+                current.next = newNode;
+                this.length++;
+                return true;
+            }
+
+            removeFirst() {
+                if (!this.head) return undefined;
+                let removed = this.head;
+                if (this.length === 1) {
+                    this.head = null;
+                    this.tail = null;
+                } else {
+                    this.head = removed.next;
+                    this.tail.next = this.head;
+                }
+                this.length--;
+                return removed;
+            }
+
+            removeLast() {
+                if (!this.head) return undefined;
+                let current = this.head;
+                let newTail = current;
+                while (current.next !== this.head) {
+                    newTail = current;
+                    current = current.next;
+                }
+                this.tail = newTail;
+                this.tail.next = this.head;
+                this.length--;
+                if (this.length === 0) {
+                    this.head = null;
+                    this.tail = null;
+                }
+                return current;
+            }
+
+            removeAtIndex(index) {
+                if (index < 0 || index >= this.length) return undefined;
+                if (index === 0) return this.removeFirst();
+                if (index === this.length - 1) return this.removeLast();
+
+                let previous = this.head;
+                for (let i = 0; i < index - 1; i++) {
+                    previous = previous.next;
+                }
+                let removed = previous.next;
+                previous.next = removed.next;
+                this.length--;
+                return removed;
+            }
+        }
+
+        let singlyList = new SinglyLinkedList();
+        let doublyList = new DoublyLinkedList();
+        let circularList = new CircularLinkedList();
+
+        function getActiveList() {
+            switch (currentListType) {
+                case 'singly': return singlyList;
+                case 'doubly': return doublyList;
+                case 'circular': return circularList;
+            }
+        }
+
+        function updateUI() {
+            singlyBtn.classList.remove('bg-blue-500', 'bg-gray-400');
+            doublyBtn.classList.remove('bg-blue-500', 'bg-gray-400');
+            circularBtn.classList.remove('bg-blue-500', 'bg-gray-400');
+
+            singlyBtn.classList.add(currentListType === 'singly' ? 'bg-blue-500' : 'bg-gray-400');
+            doublyBtn.classList.add(currentListType === 'doubly' ? 'bg-blue-500' : 'bg-gray-400');
+            circularBtn.classList.add(currentListType === 'circular' ? 'bg-blue-500' : 'bg-gray-400');
+
+            renderVisualization();
+        }
+
+        function renderVisualization() {
+            visualizationContainer.innerHTML = '';
+            const activeList = getActiveList();
+
+            if (activeList.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.textContent = 'The list is empty.';
+                emptyMessage.className = 'text-center text-gray-500 mt-8 w-full';
+                visualizationContainer.appendChild(emptyMessage);
+                return;
+            }
+
+            let nodes = [];
+            let tempNode = activeList.head;
+
+            // Use a proper traversal loop for each list type to ensure accuracy
+            if (currentListType === 'circular' && activeList.length > 0) {
+                do {
+                    nodes.push(tempNode);
+                    tempNode = tempNode.next;
+                } while (tempNode !== activeList.head);
+            } else {
+                while(tempNode) {
+                    nodes.push(tempNode);
+                    tempNode = tempNode.next;
+                }
+            }
+
+            const nodeElements = [];
+            nodes.forEach((node, index) => {
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = 'node';
+                nodeDiv.innerHTML = `<span class="node-value">${node.value}</span>`;
+
+                // Add HEAD and TAIL labels
+                if (node === activeList.head && activeList.length > 0) {
+                    const headLabel = document.createElement('span');
+                    headLabel.textContent = 'HEAD';
+                    headLabel.className = 'node-label top-1 left-1/2 -translate-x-1/2';
+                    nodeDiv.appendChild(headLabel);
+                }
+                if (node === activeList.tail && activeList.length > 0) {
+                    const tailLabel = document.createElement('span');
+                    tailLabel.textContent = 'TAIL';
+                    tailLabel.className = 'node-label top-1 left-1/2 -translate-x-1/2';
+                    nodeDiv.appendChild(tailLabel);
+                }
+
+                nodeElements.push(nodeDiv);
+
+                if (index < nodes.length - 1) {
+                    const arrowDiv = document.createElement('div');
+                    if (currentListType === 'doubly') {
+                        arrowDiv.className = 'doubly-arrow';
+                        arrowDiv.innerHTML = `<span class="arrow-head-right"></span><span class="arrow-head-left"></span>`;
+                    } else {
+                        arrowDiv.className = 'arrow';
+                    }
+                    nodeElements.push(arrowDiv);
+                }
+            });
+
+            nodeElements.forEach(el => visualizationContainer.appendChild(el));
+
+            if (currentListType === 'circular' && nodes.length > 0) {
+                // Use requestAnimationFrame to ensure elements are fully rendered before calculating positions
+                requestAnimationFrame(() => {
+                    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                    svg.classList.add('circular-arrow-svg');
+
+                    const lastNodeElement = visualizationContainer.querySelector('.node:last-of-type');
+                    const firstNodeElement = visualizationContainer.querySelector('.node:first-of-type');
+
+                    if (!lastNodeElement || !firstNodeElement) return;
+
+                    const lastRect = lastNodeElement.getBoundingClientRect();
+                    const firstRect = firstNodeElement.getBoundingClientRect();
+                    const containerRect = visualizationContainer.getBoundingClientRect();
+
+                    const startX = lastRect.right - containerRect.left;
+                    const startY = lastRect.top - containerRect.top + lastRect.height / 2;
+                    const endX = firstRect.left - containerRect.left;
+                    const endY = firstRect.top - containerRect.top + firstRect.height / 2;
+
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute('d', `M${startX},${startY} C${startX + 50},${startY + 50} ${endX - 50},${endY + 50} ${endX},${endY}`);
+                    path.setAttribute('stroke', '#374151');
+                    path.setAttribute('stroke-width', '2');
+                    path.setAttribute('fill', 'none');
+
+                    const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+                    marker.setAttribute('id', 'arrowhead');
+                    marker.setAttribute('markerWidth', '10');
+                    marker.setAttribute('markerHeight', '7');
+                    marker.setAttribute('refX', '0');
+                    marker.setAttribute('refY', '3.5');
+                    marker.setAttribute('orient', 'auto');
+                    const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                    polygon.setAttribute('points', '0 0, 10 3.5, 0 7');
+                    polygon.setAttribute('fill', '#374151');
+                    marker.appendChild(polygon);
+
+                    svg.appendChild(marker);
+                    path.setAttribute('marker-end', 'url(#arrowhead)');
+                    svg.appendChild(path);
+                    visualizationContainer.appendChild(svg);
+                });
+            }
+        }
+
+        // Event Listeners for switching list types
+        singlyBtn.addEventListener('click', () => {
+            currentListType = 'singly';
+            updateUI();
+        });
+
+        doublyBtn.addEventListener('click', () => {
+            currentListType = 'doubly';
+            updateUI();
+        });
+
+        circularBtn.addEventListener('click', () => {
+            currentListType = 'circular';
+            updateUI();
+        });
+
+        // Add operations
+        addFirstBtn.addEventListener('click', () => {
+            const value = parseInt(addValueInput.value);
+            if (!isNaN(value)) {
+                getActiveList().addFirst(value);
+                addValueInput.value = '';
+                updateUI();
+            }
+        });
+        addLastBtn.addEventListener('click', () => {
+            const value = parseInt(addValueInput.value);
+            if (!isNaN(value)) {
+                getActiveList().addLast(value);
+                addValueInput.value = '';
+                updateUI();
+            }
+        });
+        addIndexBtn.addEventListener('click', () => {
+            const value = parseInt(addValueInput.value);
+            const index = parseInt(addIndexInput.value);
+            if (!isNaN(value) && !isNaN(index)) {
+                getActiveList().addAtIndex(index, value);
+                addValueInput.value = '';
+                addIndexInput.value = '';
+                updateUI();
+            }
+        });
+
+        // Remove operations
+        removeFirstBtn.addEventListener('click', () => {
+            getActiveList().removeFirst();
+            updateUI();
+        });
+        removeLastBtn.addEventListener('click', () => {
+            getActiveList().removeLast();
+            updateUI();
+        });
+        removeIndexBtn.addEventListener('click', () => {
+            const index = parseInt(removeIndexInput.value);
+            if (!isNaN(index)) {
+                getActiveList().removeAtIndex(index);
+                removeIndexInput.value = '';
+                updateUI();
+            }
+        });
+
+        // Initial render
+        updateUI();
+    </script>
+</body>
+</html>

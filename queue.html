@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Queue & Deque Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to right, #000000, #333333);
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            align-items: center;
+        }
+        .card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            text-align: center;
+        }
+        .visualization-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            min-height: 100px;
+            padding: 1rem;
+            background-color: #e5e7eb;
+            border-radius: 1rem;
+            border: 2px solid #9ca3af;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow-x: auto;
+        }
+        .queue-element, .deque-element {
+            min-width: 70px;
+            padding: 0.75rem;
+            background-color: #3b82f6;
+            color: white;
+            font-weight: bold;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.5s ease-in-out;
+            position: relative;
+        }
+        .queue-label {
+            position: absolute;
+            top: -2rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #374151;
+        }
+        .front-label { left: 10px; }
+        .back-label { right: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-bold text-center mb-4">Queue & Deque Visualizer</h1>
+
+        <!-- Queue Section -->
+        <div class="card">
+            <h2 class="text-2xl font-semibold mb-4">Queue (FIFO)</h2>
+            <div class="flex flex-col md:flex-row justify-center items-center gap-4 mb-8">
+                <input type="number" id="queueValueInput" placeholder="Value to enqueue" class="p-2 border border-gray-300 rounded-md w-full md:w-auto">
+                <button id="enqueueBtn" class="bg-green-500 text-white p-2 rounded-md font-bold hover:bg-green-600 transition w-full md:w-auto">Enqueue</button>
+                <button id="dequeueBtn" class="bg-red-500 text-white p-2 rounded-md font-bold hover:bg-red-600 transition w-full md:w-auto">Dequeue</button>
+            </div>
+            <div id="queueContainer" class="visualization-container">
+                <span class="queue-label front-label">FRONT</span>
+                <span class="queue-label back-label">BACK</span>
+            </div>
+            <p id="queueMessage" class="mt-4 text-gray-500"></p>
+        </div>
+
+        <!-- Deque Section -->
+        <div class="card">
+            <h2 class="text-2xl font-semibold mb-4">Deque (Doubly Ended Queue)</h2>
+            <div class="flex flex-col md:flex-row justify-center items-center gap-4 mb-8">
+                <input type="number" id="dequeValueInput" placeholder="Value to enqueue" class="p-2 border border-gray-300 rounded-md w-full md:w-auto">
+                <button id="dequeEnqueueFrontBtn" class="bg-green-500 text-white p-2 rounded-md font-bold hover:bg-green-600 transition w-full md:w-auto">Enqueue Front</button>
+                <button id="dequeEnqueueBackBtn" class="bg-green-500 text-white p-2 rounded-md font-bold hover:bg-green-600 transition w-full md:w-auto">Enqueue Back</button>
+                <button id="dequeDequeueFrontBtn" class="bg-red-500 text-white p-2 rounded-md font-bold hover:bg-red-600 transition w-full md:w-auto">Dequeue Front</button>
+                <button id="dequeDequeueBackBtn" class="bg-red-500 text-white p-2 rounded-md font-bold hover:bg-red-600 transition w-full md:w-auto">Dequeue Back</button>
+            </div>
+            <div id="dequeContainer" class="visualization-container">
+                <span class="queue-label front-label">FRONT</span>
+                <span class="queue-label back-label">BACK</span>
+            </div>
+            <p id="dequeMessage" class="mt-4 text-gray-500"></p>
+        </div>
+    </div>
+
+    <script>
+        // --- Queue Logic ---
+        const queueValueInput = document.getElementById('queueValueInput');
+        const enqueueBtn = document.getElementById('enqueueBtn');
+        const dequeueBtn = document.getElementById('dequeueBtn');
+        const queueContainer = document.getElementById('queueContainer');
+        const queueMessage = document.getElementById('queueMessage');
+
+        let queue = [];
+        let nextQueueValue = 1;
+
+        function renderQueue() {
+            queueContainer.innerHTML = '';
+            if (queue.length === 0) {
+                queueMessage.textContent = 'The queue is empty.';
+                dequeueBtn.disabled = true;
+            } else {
+                queueMessage.textContent = 'Queue size: ' + queue.length;
+                dequeueBtn.disabled = false;
+            }
+            queue.forEach(value => {
+                const element = document.createElement('div');
+                element.className = 'queue-element';
+                element.textContent = value;
+                queueContainer.appendChild(element);
+            });
+        }
+
+        function enqueue() {
+            const value = queueValueInput.value.trim();
+            let pushVal;
+            if (value === '') {
+                pushVal = nextQueueValue++;
+            } else {
+                pushVal = parseInt(value);
+            }
+            if (!isNaN(pushVal)) {
+                queue.push(pushVal);
+                queueValueInput.value = '';
+                renderQueue();
+            } else {
+                queueMessage.textContent = 'Please enter a valid number.';
+            }
+        }
+
+        function dequeue() {
+            if (queue.length > 0) {
+                const dequeuedValue = queue.shift();
+                const elementToRemove = queueContainer.firstElementChild;
+                if (elementToRemove) {
+                    elementToRemove.style.transform = 'translateX(-150%)';
+                    elementToRemove.style.opacity = '0';
+                    setTimeout(() => {
+                        renderQueue();
+                        queueMessage.textContent = `Dequeued: ${dequeuedValue}`;
+                    }, 500);
+                }
+            }
+        }
+
+        enqueueBtn.addEventListener('click', enqueue);
+        dequeueBtn.addEventListener('click', dequeue);
+        queueValueInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') enqueue();
+        });
+
+        // --- Deque Logic ---
+        const dequeValueInput = document.getElementById('dequeValueInput');
+        const dequeEnqueueFrontBtn = document.getElementById('dequeEnqueueFrontBtn');
+        const dequeEnqueueBackBtn = document.getElementById('dequeEnqueueBackBtn');
+        const dequeDequeueFrontBtn = document.getElementById('dequeDequeueFrontBtn');
+        const dequeDequeueBackBtn = document.getElementById('dequeDequeueBackBtn');
+        const dequeContainer = document.getElementById('dequeContainer');
+        const dequeMessage = document.getElementById('dequeMessage');
+
+        let deque = [];
+        let nextDequeValue = 1;
+
+        function renderDeque() {
+            dequeContainer.innerHTML = '';
+            if (deque.length === 0) {
+                dequeMessage.textContent = 'The deque is empty.';
+                dequeDequeueFrontBtn.disabled = true;
+                dequeDequeueBackBtn.disabled = true;
+            } else {
+                dequeMessage.textContent = 'Deque size: ' + deque.length;
+                dequeDequeueFrontBtn.disabled = false;
+                dequeDequeueBackBtn.disabled = false;
+            }
+            deque.forEach(value => {
+                const element = document.createElement('div');
+                element.className = 'deque-element';
+                element.textContent = value;
+                dequeContainer.appendChild(element);
+            });
+        }
+
+        function dequeEnqueueFront() {
+            const value = dequeValueInput.value.trim();
+            let pushVal;
+            if (value === '') {
+                pushVal = nextDequeValue++;
+            } else {
+                pushVal = parseInt(value);
+            }
+            if (!isNaN(pushVal)) {
+                deque.unshift(pushVal);
+                dequeValueInput.value = '';
+                renderDeque();
+            } else {
+                dequeMessage.textContent = 'Please enter a valid number.';
+            }
+        }
+
+        function dequeEnqueueBack() {
+            const value = dequeValueInput.value.trim();
+            let pushVal;
+            if (value === '') {
+                pushVal = nextDequeValue++;
+            } else {
+                pushVal = parseInt(value);
+            }
+            if (!isNaN(pushVal)) {
+                deque.push(pushVal);
+                dequeValueInput.value = '';
+                renderDeque();
+            } else {
+                dequeMessage.textContent = 'Please enter a valid number.';
+            }
+        }
+
+        function dequeDequeueFront() {
+            if (deque.length > 0) {
+                const dequeuedValue = deque.shift();
+                const elementToRemove = dequeContainer.firstElementChild;
+                if (elementToRemove) {
+                    elementToRemove.style.transform = 'translateX(-150%)';
+                    elementToRemove.style.opacity = '0';
+                    setTimeout(() => {
+                        renderDeque();
+                        dequeMessage.textContent = `Dequeued from front: ${dequeuedValue}`;
+                    }, 500);
+                }
+            }
+        }
+
+        function dequeDequeueBack() {
+            if (deque.length > 0) {
+                const dequeuedValue = deque.pop();
+                const elementToRemove = dequeContainer.lastElementChild;
+                if (elementToRemove) {
+                    elementToRemove.style.transform = 'translateX(150%)';
+                    elementToRemove.style.opacity = '0';
+                    setTimeout(() => {
+                        renderDeque();
+                        dequeMessage.textContent = `Dequeued from back: ${dequeuedValue}`;
+                    }, 500);
+                }
+            }
+        }
+
+        dequeEnqueueFrontBtn.addEventListener('click', dequeEnqueueFront);
+        dequeEnqueueBackBtn.addEventListener('click', dequeEnqueueBack);
+        dequeDequeueFrontBtn.addEventListener('click', dequeDequeueFront);
+        dequeDequeueBackBtn.addEventListener('click', dequeDequeueBack);
+        dequeValueInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                // Default to adding to the back if Enter is pressed
+                dequeEnqueueBack();
+            }
+        });
+
+        // Initial renders
+        renderQueue();
+        renderDeque();
+    </script>
+</body>
+</html>

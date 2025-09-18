@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Array Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #FF6B6B 0%, #FFA500 100%);
+            color: #374151;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            gap: 2rem;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            align-items: center;
+        }
+        .card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1-24px -1px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            text-align: center;
+        }
+        .array-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1rem;
+            min-height: 100px;
+            padding: 1rem;
+            background-color: #f3f4f6;
+            border-radius: 1rem;
+            border: 2px solid #e5e7eb;
+        }
+        .array-element {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #4f46e5;
+            color: white;
+            font-weight: bold;
+            height: 40px;
+            min-width: 40px;
+            padding: 0 0.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+        .array-element.highlight {
+            background-color: #f59e0b; /* Amber */
+            transform: scale(1.1);
+        }
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        input[type="number"] {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+            text-align: center;
+            width: 100px;
+        }
+        .button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            color: white;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .button.add {
+            background-color: #22c55e;
+        }
+        .button.remove {
+            background-color: #ef4444;
+        }
+        .button.search {
+            background-color: #3b82f6;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-bold text-center text-white">Array Visualizer</h1>
+
+        <div class="card">
+            <h2 class="text-xl font-semibold mb-4">Operations</h2>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <div class="input-group">
+                    <input type="number" id="addValue" placeholder="Value to add">
+                    <button id="addButton" class="button add w-full sm:w-auto">Add Element</button>
+                </div>
+                <div class="input-group">
+                    <button id="removeButton" class="button remove w-full sm:w-auto">Remove Last</button>
+                </div>
+                <div class="input-group">
+                    <input type="number" id="searchValue" placeholder="Value to search">
+                    <button id="searchButton" class="button search w-full sm:w-auto">Search</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="text-xl font-semibold mb-4">Visualization</h2>
+            <div id="arrayContainer" class="array-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const arrayContainer = document.getElementById('arrayContainer');
+        const addButton = document.getElementById('addButton');
+        const removeButton = document.getElementById('removeButton');
+        const searchButton = document.getElementById('searchButton');
+        const addValueInput = document.getElementById('addValue');
+        const searchValueInput = document.getElementById('searchValue');
+
+        let array = [];
+        const MAX_SIZE = 10;
+        const animationSpeed = 300; // in milliseconds
+
+        function renderArray() {
+            arrayContainer.innerHTML = '';
+            array.forEach((value, index) => {
+                const element = document.createElement('div');
+                element.className = 'array-element';
+                element.textContent = value;
+                element.dataset.index = index;
+                arrayContainer.appendChild(element);
+            });
+        }
+
+        async function addElement() {
+            const value = addValueInput.value;
+            if (value === '' || array.length >= MAX_SIZE) {
+                return;
+            }
+            array.push(value);
+            renderArray();
+            addValueInput.value = '';
+        }
+
+        async function removeElement() {
+            if (array.length === 0) {
+                return;
+            }
+            const lastElement = arrayContainer.lastElementChild;
+            lastElement.style.transform = 'scale(0)';
+            await new Promise(resolve => setTimeout(resolve, animationSpeed));
+            array.pop();
+            renderArray();
+        }
+
+        async function searchElement() {
+            const value = searchValueInput.value;
+            if (value === '') {
+                return;
+            }
+
+            const elements = document.querySelectorAll('.array-element');
+            let found = false;
+
+            for (let i = 0; i < array.length; i++) {
+                elements[i].style.backgroundColor = '#3b82f6';
+                if (array[i].toString() === value) {
+                    elements[i].classList.add('highlight');
+                    found = true;
+                    await new Promise(resolve => setTimeout(resolve, animationSpeed * 2));
+                    elements[i].classList.remove('highlight');
+                    break;
+                }
+                await new Promise(resolve => setTimeout(resolve, animationSpeed));
+            }
+
+            if (!found) {
+                // Flash the button red to indicate not found
+                searchButton.style.backgroundColor = '#ef4444';
+                await new Promise(resolve => setTimeout(resolve, animationSpeed * 2));
+                searchButton.style.backgroundColor = '#3b82f6';
+            }
+
+            searchValueInput.value = '';
+            renderArray(); // Reset colors
+        }
+
+        addButton.addEventListener('click', addElement);
+        removeButton.addEventListener('click', removeElement);
+        searchButton.addEventListener('click', searchElement);
+
+        // Initial render
+        renderArray();
+    </script>
+</body>
+</html>
