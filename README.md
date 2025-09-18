@@ -58,6 +58,7 @@ Interactive visualizations of fundamental Data Structures & Algorithms, built to
 4. Experiment! Try different inputs (if supported) to see behavior.
 
 ---
+##📸 Screenshots
 
 ## 💡 Possible Extensions / Future Work
 
